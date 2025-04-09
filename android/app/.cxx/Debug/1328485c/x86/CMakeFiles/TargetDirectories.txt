@@ -1,0 +1,2 @@
+D:/Comtelindo/messaging-prototype/using_chat_api/android/app/.cxx/Debug/1328485c/x86/CMakeFiles/edit_cache.dir
+D:/Comtelindo/messaging-prototype/using_chat_api/android/app/.cxx/Debug/1328485c/x86/CMakeFiles/rebuild_cache.dir

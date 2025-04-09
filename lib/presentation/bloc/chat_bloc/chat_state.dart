@@ -1,0 +1,23 @@
+part of 'chat_bloc.dart';
+
+abstract class ChatState {}
+
+class ChatLoading extends ChatState {}
+
+class ChatLoaded extends ChatState {
+  final List<Message> messages;
+
+  ChatLoaded(this.messages);
+}
+
+class ChatError extends ChatState {
+  final String message;
+
+  ChatError(this.message);
+}
+
+class MessageSent extends ChatState {
+  final Message message;
+
+  MessageSent(this.message);
+}

@@ -1,0 +1,17 @@
+part of 'contact_bloc.dart';
+
+abstract class ContactState {}
+
+class ContactLoading extends ContactState {}
+
+class ContactLoaded extends ContactState {
+  final List<ContactModel> contacts;
+
+  ContactLoaded(this.contacts);
+}
+
+class ContactError extends ContactState {
+  final String message;
+
+  ContactError(this.message);
+}
