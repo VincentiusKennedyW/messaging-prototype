@@ -1,6 +1,7 @@
 // ignore: depend_on_referenced_packages
 import 'package:bloc/bloc.dart';
 import 'package:using_chat_api/data/auth_service.dart';
+import 'package:using_chat_api/data/chat_cache_service.dart';
 import 'package:using_chat_api/data/chat_service.dart';
 import 'package:using_chat_api/model/message_model.dart';
 
@@ -10,6 +11,7 @@ part 'chat_state.dart';
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
   final ChatService _chatService;
   final AuthService _authService;
+  final ChatCacheService _cacheService = ChatCacheService();
 
   ChatBloc(this._chatService, this._authService) : super(ChatLoading()) {
     on<FetchMessages>(_onFetchMessages);
@@ -20,12 +22,20 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   Future<void> _onFetchMessages(
       FetchMessages event, Emitter<ChatState> emit) async {
     final token = await _authService.loadToken();
-    try {
-      emit(ChatLoading());
-      final messages = await _chatService.getMessages(token!, event.receiverId);
-      emit(ChatLoaded(messages));
-    } catch (e) {
-      emit(ChatError(e.toString()));
+
+    final cachedMessages = _cacheService.getMessages(event.receiverId);
+
+    if (cachedMessages.isNotEmpty) {
+      emit(ChatLoaded(cachedMessages));
+    } else {
+      try {
+        final messages =
+            await _chatService.getMessages(token!, event.receiverId);
+        emit(ChatLoaded(messages));
+        await _cacheService.saveMessages(event.receiverId, messages);
+      } catch (e) {
+        emit(ChatError(e.toString()));
+      }
     }
   }
 
@@ -51,6 +61,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         final updatedMessages = List<Message>.from(currentState.messages)
           ..add(event.message);
         emit(ChatLoaded(updatedMessages));
+
+        await _cacheService.addMessages(
+            event.message.receiverId, event.message);
       }
     }
   }

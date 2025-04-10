@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:using_chat_api/model/message_model.dart';
 import 'package:using_chat_api/presentation/bloc/chat_bloc/chat_bloc.dart';
 import 'package:using_chat_api/presentation/bloc/contact_bloc/contact_bloc.dart';
 import 'package:using_chat_api/utils/injection.dart' as di;
@@ -9,8 +12,15 @@ import 'package:using_chat_api/presentation/bloc/user_bloc/user_bloc.dart';
 import 'package:using_chat_api/utils/routes.dart';
 import 'package:using_chat_api/utils/theme.dart';
 
-void main() {
-  runApp(const MainApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final appDir = await getApplicationDocumentsDirectory();
+  Hive.init(appDir.path);
+
+  Hive.registerAdapter(MessageAdapter());
+  await Hive.openBox<List>('chat_messages');
+
+  runApp(MainApp());
   di.init();
 }
 
@@ -22,8 +32,7 @@ class MainApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-            create: (context) =>
-                di.locator<LoginBloc>()..add(const LoginEvent.isLoggedIn())),
+            create: (context) => di.locator<LoginBloc>()..add(IsLoggedIn())),
         BlocProvider(create: (context) => di.locator<RegisterBloc>()),
         BlocProvider(create: (context) => di.locator<UserBloc>()),
         BlocProvider(create: (context) => di.locator<ChatBloc>()),
@@ -31,18 +40,15 @@ class MainApp extends StatelessWidget {
       ],
       child: BlocListener<LoginBloc, LoginState>(
         listener: (context, state) {
-          state.whenOrNull(
-            loggedIn: (token) {
-              router.goNamed('contact');
-            },
-            notLoggedIn: () {
-              router.goNamed('login');
-            },
-          );
+          if (state is LoggedIn) {
+            router.goNamed('contact');
+          } else if (state is NotLoggedIn) {
+            router.goNamed('login');
+          }
         },
         child: MaterialApp.router(
           debugShowCheckedModeBanner: false,
-          title: 'WA BLASTER PROTOTYPE',
+          title: 'Flutter Chat',
           theme: ThemeData(
             textTheme: myTextTheme,
             colorScheme: Theme.of(context).colorScheme.copyWith(

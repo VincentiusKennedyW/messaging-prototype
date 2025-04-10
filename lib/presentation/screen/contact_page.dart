@@ -40,9 +40,7 @@ class ContactPage extends StatelessWidget {
                           ),
                           TextButton(
                             onPressed: () {
-                              context
-                                  .read<LoginBloc>()
-                                  .add(const LoginEvent.loggedOut());
+                              context.read<LoginBloc>().add(LoggedOut());
                               context.pop();
                             },
                             child: const Text('Ok'),

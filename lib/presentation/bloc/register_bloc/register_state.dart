@@ -1,9 +1,15 @@
 part of 'register_bloc.dart';
 
-@freezed
-class RegisterState with _$RegisterState {
-  const factory RegisterState.registerInitial() = _RegisterInitial;
-  const factory RegisterState.registerLoading() = _RegisterLoading;
-  const factory RegisterState.registered() = _Registered;
-  const factory RegisterState.registerError(String message) = _RegisterError;
+abstract class RegisterState {}
+
+class RegisterInitial extends RegisterState {}
+
+class RegisterLoading extends RegisterState {}
+
+class Registered extends RegisterState {}
+
+class RegisterError extends RegisterState {
+  final String message;
+
+  RegisterError(this.message);
 }

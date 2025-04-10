@@ -42,27 +42,24 @@ class _RegisterScreenState extends State<RegisterScreen>
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 72),
           child: BlocListener<RegisterBloc, RegisterState>(
             listener: (context, state) {
-              state.mapOrNull(
-                registered: (value) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('User Created'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  Future.delayed(const Duration(seconds: 1), () {
-                    context.pop();
-                  });
-                },
-                registerError: (value) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(value.message),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                },
-              );
+              if (state is RegisterError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              } else if (state is Registered) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('User Created'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                Future.delayed(const Duration(seconds: 1), () {
+                  context.pop();
+                });
+              }
             },
             child: BlocBuilder<RegisterBloc, RegisterState>(
               builder: (context, state) {
@@ -180,7 +177,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
                             BlocProvider.of<RegisterBloc>(context).add(
-                              RegisterEvent.register(
+                              Register(
                                 username: _usernameController.text,
                                 email: _emailController.text,
                                 password: _passwordController.text,
@@ -196,17 +193,17 @@ class _RegisterScreenState extends State<RegisterScreen>
                             borderRadius: BorderRadius.circular(30.0),
                           ),
                         ),
-                        child: state.maybeWhen(
-                          registerLoading: () =>
-                              const CircularProgressIndicator(),
-                          orElse: () => const Text(
-                            'Register',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                        child: state is RegisterLoading
+                            ? const CircularProgressIndicator(
+                                color: fourthColor,
+                              )
+                            : const Text(
+                                'Register',
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  color: fourthColor,
+                                ),
+                              ),
                       ),
                       const SizedBox(height: 16),
                       Row(

@@ -1,9 +1,17 @@
 part of 'login_bloc.dart';
 
-@freezed
-class LoginEvent with _$LoginEvent {
-  const factory LoginEvent.login(
-      {required String username, required String password}) = _Login;
-  const factory LoginEvent.loggedOut() = _LoggedOut;
-  const factory LoginEvent.isLoggedIn() = _IsLoggedIn;
+abstract class LoginEvent {}
+
+class Login extends LoginEvent {
+  final String username;
+  final String password;
+
+  Login({
+    required this.username,
+    required this.password,
+  });
 }
+
+class LoggedOut extends LoginEvent {}
+
+class IsLoggedIn extends LoginEvent {}

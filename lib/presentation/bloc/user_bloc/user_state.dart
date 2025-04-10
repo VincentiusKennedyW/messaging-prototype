@@ -1,9 +1,19 @@
 part of 'user_bloc.dart';
 
-@freezed
-class UserState with _$UserState {
-  const factory UserState.userInitial() = _UserInitial;
-  const factory UserState.userLoading() = _UserLoading;
-  const factory UserState.userLoaded(UserData user) = _UserLoaded;
-  const factory UserState.userError(String message) = _UserError;
+abstract class UserState {}
+
+class UserInitial extends UserState {}
+
+class UserLoading extends UserState {}
+
+class UserLoaded extends UserState {
+  final UserData user;
+
+  UserLoaded(this.user);
+}
+
+class UserError extends UserState {
+  final String message;
+
+  UserError(this.message);
 }

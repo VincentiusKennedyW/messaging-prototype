@@ -41,16 +41,14 @@ class _LoginScreenState extends State<LoginScreen>
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 72),
           child: BlocListener<LoginBloc, LoginState>(
             listener: (context, state) {
-              state.mapOrNull(
-                loginError: (value) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(value.message),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                },
-              );
+              if (state is LoginError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             child: BlocBuilder<LoginBloc, LoginState>(
               builder: (context, state) {
@@ -139,7 +137,7 @@ class _LoginScreenState extends State<LoginScreen>
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
                             BlocProvider.of<LoginBloc>(context).add(
-                              LoginEvent.login(
+                              Login(
                                 username: _usernameController.text,
                                 password: _passwordController.text,
                               ),
@@ -154,16 +152,17 @@ class _LoginScreenState extends State<LoginScreen>
                             borderRadius: BorderRadius.circular(30.0),
                           ),
                         ),
-                        child: state.maybeWhen(
-                          loginLoading: () => const CircularProgressIndicator(),
-                          orElse: () => const Text(
-                            'Login',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                        child: state is LoginLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            : const Text(
+                                'Login',
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  color: fourthColor,
+                                ),
+                              ),
                       ),
                       const SizedBox(height: 16),
                       Row(
