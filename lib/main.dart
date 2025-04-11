@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:using_chat_api/model/message_model.dart';
+import 'package:using_chat_api/model/user_model.dart';
 import 'package:using_chat_api/presentation/bloc/chat_bloc/chat_bloc.dart';
 import 'package:using_chat_api/presentation/bloc/contact_bloc/contact_bloc.dart';
 import 'package:using_chat_api/utils/injection.dart' as di;
@@ -19,6 +20,11 @@ void main() async {
 
   Hive.registerAdapter(MessageAdapter());
   await Hive.openBox<List>('chat_messages');
+
+  await Hive.openBox('chat_meta');
+
+  Hive.registerAdapter(UserDataAdapter());
+  await Hive.openBox<UserData>('user_box');
 
   runApp(MainApp());
   di.init();

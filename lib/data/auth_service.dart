@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:using_chat_api/model/user_model.dart';
@@ -77,6 +78,21 @@ class AuthService {
     storage.setString('token', token);
   }
 
+  Future<void> persistUser(UserData user) async {
+    final box = Hive.box<UserData>('user_box');
+    await box.put('current_user', user);
+  }
+
+  UserData? getCachedUser() {
+    final box = Hive.box<UserData>('user_box');
+    return box.get('current_user');
+  }
+
+  Future<void> clearUser() async {
+    final box = Hive.box<UserData>('user_box');
+    await box.delete('current_user');
+  }
+
   Future<void> deleteToken() async {
     final storage = await SharedPreferences.getInstance();
     storage.remove('token');
@@ -104,14 +120,14 @@ class AuthService {
     }
   }
 
-  Future<int?> getSenderId() async {
-    final token = await loadToken();
-    if (token != null) {
-      final userModel = await getUserData(token);
-      return userModel.data.id;
-    }
-    return null;
-  }
+  // Future<int?> getSenderId() async {
+  //   final token = await loadToken();
+  //   if (token != null) {
+  //     final userModel = await getUserData(token);
+  //     return userModel.data.id;
+  //   }
+  //   return null;
+  // }
 
   Future<void> logout(String token) async {
     try {

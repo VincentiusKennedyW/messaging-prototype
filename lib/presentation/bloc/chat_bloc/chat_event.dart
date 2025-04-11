@@ -2,6 +2,12 @@ part of 'chat_bloc.dart';
 
 abstract class ChatEvent {}
 
+class InitChat extends ChatEvent {
+  final int receiverId;
+
+  InitChat(this.receiverId);
+}
+
 class FetchMessages extends ChatEvent {
   final int receiverId;
 

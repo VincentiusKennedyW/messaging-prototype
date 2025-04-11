@@ -13,26 +13,84 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   final AuthService _authService;
   final ChatCacheService _cacheService = ChatCacheService();
 
-  ChatBloc(this._chatService, this._authService) : super(ChatLoading()) {
+  int? _senderId;
+
+  ChatBloc(this._chatService, this._authService) : super(ChatInitial()) {
+    final user = _authService.getCachedUser();
+    _senderId = user?.id;
+
+    on<InitChat>(_onInitChat);
     on<FetchMessages>(_onFetchMessages);
     on<SendMessageEvent>(_onSendMessage);
     on<NewMessageReceived>(_onNewMessageReceived);
   }
 
+  Future<void> _onInitChat(InitChat event, Emitter<ChatState> emit) async {
+    if (_senderId == null) {
+      emit(ChatError('User not logged in'));
+      return;
+    }
+
+    final token = await _authService.loadToken();
+    final receiverId = event.receiverId;
+
+    final cached = _cacheService.getMessages(_senderId!, receiverId);
+    emit(ChatLoaded(cached)); // ✅ tampilkan cache dulu
+
+    final lastSync = _cacheService.getLastSyncTime(_senderId!, receiverId);
+    final now = DateTime.now();
+    final shouldSync =
+        lastSync == null || now.difference(lastSync).inMinutes >= 2;
+
+    if (!shouldSync) {
+      print('🛑 Skip sync for receiverId $receiverId (last sync was recent)');
+      return;
+    }
+
+    try {
+      print('🔄 Syncing messages from server...');
+      final serverMessages = await _chatService.getMessages(token!, receiverId);
+
+      final newMessages = serverMessages
+          .where((serverMsg) =>
+              !cached.any((cachedMsg) => cachedMsg.id == serverMsg.id))
+          .toList();
+
+      if (newMessages.isNotEmpty) {
+        final updated = [...cached, ...newMessages];
+        updated.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+        emit(ChatLoaded(updated));
+        await _cacheService.saveMessages(_senderId!, receiverId, updated);
+      }
+
+      await _cacheService.updateLastSyncTime(_senderId!, receiverId);
+    } catch (e) {
+      print('❌ Sync error: $e');
+    }
+  }
+
   Future<void> _onFetchMessages(
       FetchMessages event, Emitter<ChatState> emit) async {
-    final token = await _authService.loadToken();
+    if (_senderId == null) {
+      emit(ChatError('User not logged in'));
+      return;
+    }
 
-    final cachedMessages = _cacheService.getMessages(event.receiverId);
+    final token = await _authService.loadToken();
+    final receiverId = event.receiverId;
+
+    final cachedMessages = _cacheService.getMessages(_senderId!, receiverId);
 
     if (cachedMessages.isNotEmpty) {
       emit(ChatLoaded(cachedMessages));
     } else {
       try {
-        final messages =
-            await _chatService.getMessages(token!, event.receiverId);
+        print('📡 Fetching from server for receiverId = $receiverId');
+
+        final messages = await _chatService.getMessages(token!, receiverId);
         emit(ChatLoaded(messages));
-        await _cacheService.saveMessages(event.receiverId, messages);
+        await _cacheService.saveMessages(_senderId!, receiverId, messages);
       } catch (e) {
         emit(ChatError(e.toString()));
       }
@@ -44,26 +102,44 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     final token = await _authService.loadToken();
     try {
       await _chatService.sendMessage(token!, event.message, event.receiverId);
-      // Tidak menambahkan pesan ke state di sini
-      // Pesan akan ditambahkan melalui socket saat diterima kembali
+      // Real-time update akan ditangani oleh socket (NewMessageReceived)
     } catch (e) {
       emit(ChatError(e.toString()));
     }
   }
 
+  Future<void> addMessageFromOtherUser(Message message) async {
+    final currentUserId = _authService.getCachedUser()?.id;
+    if (currentUserId != null) {
+      final chatUserId = message.senderId == currentUserId
+          ? message.receiverId
+          : message.senderId;
+      await _cacheService.addMessageIfNotExist(
+          currentUserId, chatUserId, message);
+    }
+  }
+
   Future<void> _onNewMessageReceived(
       NewMessageReceived event, Emitter<ChatState> emit) async {
+    if (_senderId == null) return;
+
     if (state is ChatLoaded) {
       final currentState = state as ChatLoaded;
 
-      // Cek apakah pesan sudah ada berdasarkan ID
-      if (!currentState.messages.any((msg) => msg.id == event.message.id)) {
+      final alreadyExist =
+          currentState.messages.any((msg) => msg.id == event.message.id);
+
+      if (!alreadyExist) {
         final updatedMessages = List<Message>.from(currentState.messages)
           ..add(event.message);
+
         emit(ChatLoaded(updatedMessages));
 
-        await _cacheService.addMessages(
-            event.message.receiverId, event.message);
+        // await _cacheService.addMessageIfNotExist(
+        //     _senderId!, event.message.receiverId, event.message);
+        await addMessageFromOtherUser(event.message);
+      } else {
+        print('⚠️ Duplicate message ID ${event.message.id} ignored');
       }
     }
   }

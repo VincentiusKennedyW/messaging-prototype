@@ -16,6 +16,9 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
           event.password,
         );
         await _authService.persistToken(token);
+
+        final userModel = await _authService.getUserData(token);
+        await _authService.persistUser(userModel.data);
         emit(LoggedIn(token));
       } catch (e) {
         emit(LoginError('Failed to login: $e'));
@@ -42,6 +45,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         final token = await _authService.loadToken();
         await _authService.logout(token!);
         await _authService.deleteToken();
+        await _authService.clearUser();
         print('Logged out');
         emit(NotLoggedIn());
       } catch (e) {

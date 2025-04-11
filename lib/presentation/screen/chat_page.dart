@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+
 import 'package:using_chat_api/data/auth_service.dart';
 import 'package:using_chat_api/data/chat_service.dart';
 import 'package:using_chat_api/presentation/bloc/chat_bloc/chat_bloc.dart';
-import 'package:intl/intl.dart';
+import 'package:using_chat_api/utils/injection.dart' as di;
 
 class ChatPage extends StatefulWidget {
   final int receiverId;
@@ -35,22 +37,26 @@ class _ChatPageState extends State<ChatPage> {
         _scrollToBottom();
       },
     );
+    print('👤 ChatPage receiverId = ${widget.receiverId}');
+
+    _chatBloc = di.locator<ChatBloc>();
+    if (_chatBloc.state is! ChatLoaded) {
+      _chatBloc.add(InitChat(widget.receiverId));
+    }
+    // ChatCacheService().debugPrintAll();
 
     _getSenderId();
-
-    _chatBloc = ChatBloc(_chatService, _authService);
-    _chatBloc.add(FetchMessages(widget.receiverId));
   }
 
   Future<void> _getSenderId() async {
-    final id = await _authService.getSenderId();
-    if (id != null) {
+    final user = _authService.getCachedUser(); // ✅ ambil dari Hive
+    if (user != null) {
       setState(() {
-        senderId = id;
+        senderId = user.id;
       });
       _chatService.connect(widget.receiverId, senderId!);
     } else {
-      print('Error: Failed to get senderId');
+      print('User not found in cache');
     }
   }
 

@@ -1,3 +1,7 @@
+import 'package:hive/hive.dart';
+
+part 'user_model.g.dart';
+
 class UserModel {
   bool error;
   String message;
@@ -26,9 +30,15 @@ class UserModel {
   }
 }
 
+@HiveType(typeId: 1)
 class UserData {
+  @HiveField(0)
   int id;
+
+  @HiveField(1)
   String name;
+
+  @HiveField(2)
   String email;
 
   UserData({

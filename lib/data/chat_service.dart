@@ -62,6 +62,7 @@ class ChatService {
 
   Future<Message> sendMessage(
       String token, String message, int receiverId) async {
+    print('📡 ChatService.sendMessage called! receiverId = $receiverId');
     final Uri url = Uri.parse("$baseUrl/messages");
 
     final headers = {
@@ -97,6 +98,9 @@ class ChatService {
   }
 
   Future<List<Message>> getMessages(String token, int receiverId) async {
+    print('📡 ChatService.getMessages called! receiverId = $receiverId');
+    print('📡 ChatService.getMessages (SYNC) for $receiverId');
+
     final url = 'http://172.27.4.120:8000/api/messages/$receiverId';
     final headers = {
       'Accept': 'application/json',
@@ -115,6 +119,8 @@ class ChatService {
   }
 
   Stream<List<ContactModel>> getContactsStream(String token) async* {
+    print('📡 ChatService.getContactStream called!');
+
     final Uri url = Uri.parse("$baseUrl/contacts");
 
     final headers = {
