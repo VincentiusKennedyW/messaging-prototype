@@ -4,8 +4,10 @@ abstract class ChatEvent {}
 
 class InitChat extends ChatEvent {
   final int receiverId;
+  final DateTime? lastMessageTime;
+  final bool force;
 
-  InitChat(this.receiverId);
+  InitChat(this.receiverId, this.lastMessageTime, {this.force = false});
 }
 
 class FetchMessages extends ChatEvent {

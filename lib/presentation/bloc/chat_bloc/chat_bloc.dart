@@ -31,29 +31,34 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       return;
     }
 
-    final token = await _authService.loadToken();
     final receiverId = event.receiverId;
+    final token = await _authService.loadToken();
 
     final cached = _cacheService.getMessages(_senderId!, receiverId);
-    emit(ChatLoaded(cached)); // ✅ tampilkan cache dulu
+    emit(ChatLoaded(cached));
 
     final lastSync = _cacheService.getLastSyncTime(_senderId!, receiverId);
     final now = DateTime.now();
-    final shouldSync =
-        lastSync == null || now.difference(lastSync).inMinutes >= 2;
+    final lastCachedMessage = cached.isNotEmpty ? cached.last.createdAt : null;
+
+    final shouldSync = event.force ||
+        lastSync == null ||
+        now.difference(lastSync).inMinutes >= 2 ||
+        (event.lastMessageTime != null &&
+            (lastCachedMessage == null ||
+                event.lastMessageTime!.isAfter(lastCachedMessage)));
 
     if (!shouldSync) {
-      print('🛑 Skip sync for receiverId $receiverId (last sync was recent)');
+      print('🛑 Skip sync, considered up-to-date.');
       return;
     }
 
     try {
-      print('🔄 Syncing messages from server...');
+      print('🔄 Syncing...');
       final serverMessages = await _chatService.getMessages(token!, receiverId);
 
       final newMessages = serverMessages
-          .where((serverMsg) =>
-              !cached.any((cachedMsg) => cachedMsg.id == serverMsg.id))
+          .where((m) => !cached.any((c) => c.id == m.id))
           .toList();
 
       if (newMessages.isNotEmpty) {

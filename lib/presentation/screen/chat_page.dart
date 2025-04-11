@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import 'package:using_chat_api/data/auth_service.dart';
-import 'package:using_chat_api/data/chat_service.dart';
+import 'package:using_chat_api/data/socket_service.dart';
 import 'package:using_chat_api/presentation/bloc/chat_bloc/chat_bloc.dart';
 import 'package:using_chat_api/utils/injection.dart' as di;
 
@@ -21,7 +21,7 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   late ChatBloc _chatBloc;
-  late ChatService _chatService;
+  // late ChatService _chatService;
   late AuthService _authService;
   int? senderId;
   final TextEditingController _messageController = TextEditingController();
@@ -31,34 +31,61 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     _authService = AuthService();
-    _chatService = ChatService(
-      onMessageReceived: (message) {
-        _chatBloc.add(NewMessageReceived(message));
-        _scrollToBottom();
-      },
-    );
-    print('👤 ChatPage receiverId = ${widget.receiverId}');
-
-    _chatBloc = di.locator<ChatBloc>();
-    if (_chatBloc.state is! ChatLoaded) {
-      _chatBloc.add(InitChat(widget.receiverId));
-    }
-    // ChatCacheService().debugPrintAll();
-
-    _getSenderId();
-  }
-
-  Future<void> _getSenderId() async {
-    final user = _authService.getCachedUser(); // ✅ ambil dari Hive
+    final user = _authService.getCachedUser();
     if (user != null) {
-      setState(() {
-        senderId = user.id;
-      });
-      _chatService.connect(widget.receiverId, senderId!);
-    } else {
-      print('User not found in cache');
+      senderId = user.id;
+
+      SocketService().onMessage = (msg) {
+        if ((msg.senderId == widget.receiverId ||
+                msg.receiverId == widget.receiverId) &&
+            mounted) {
+          _chatBloc.add(NewMessageReceived(msg));
+          _scrollToBottom();
+        }
+      };
+
+      _chatBloc = di.locator<ChatBloc>();
+      _chatBloc.add(InitChat(
+        widget.receiverId,
+        null,
+      ));
     }
+    // _chatService = ChatService(
+    //   onMessageReceived: (message) {
+    //     _chatBloc.add(NewMessageReceived(message));
+    //     _scrollToBottom();
+    //   },
+    // );
+    // _chatBloc = di.locator<ChatBloc>();
+    // print('👤 ChatPage receiverId = ${widget.receiverId}');
+    // _getSenderId();
   }
+
+  // Future<void> _getSenderId() async {
+  //   final user = _authService.getCachedUser(); // ✅ ambil dari Hive
+  //   if (user != null) {
+  //     setState(() {
+  //       senderId = user.id;
+  //     });
+
+  //     // 🔌 Connect ke Socket.IO
+  //     // _chatService.connect(widget.receiverId, senderId!);
+
+  //     // 📦 Ambil pesan terakhir dari cache
+  //     final cached = di
+  //         .locator<ChatCacheService>()
+  //         .getMessages(senderId!, widget.receiverId);
+  //     final lastTime = cached.isNotEmpty ? cached.last.createdAt : null;
+
+  //     // 🚀 Trigger smart sync saat buka page
+  //     _chatBloc.add(InitChat(
+  //       widget.receiverId,
+  //       lastTime,
+  //     ));
+  //   } else {
+  //     print('User not found in cache');
+  //   }
+  // }
 
   void _scrollToBottom({bool isInitialLoad = false}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -79,7 +106,8 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void dispose() {
     _messageController.dispose();
-    _chatService.disconnect();
+    SocketService().onMessage = null;
+    // _chatService.disconnect();
     _scrollController.dispose();
     super.dispose();
   }
@@ -124,8 +152,8 @@ class _ChatPageState extends State<ChatPage> {
                           itemBuilder: (context, index) {
                             final message = state.messages[index];
                             final isMe = message.senderId == senderId;
-                            final messageTime = DateFormat('HH:mm')
-                                .format(message.createdAt); // Format time
+                            final messageTime =
+                                DateFormat('HH:mm').format(message.createdAt);
 
                             return Column(
                               crossAxisAlignment: isMe

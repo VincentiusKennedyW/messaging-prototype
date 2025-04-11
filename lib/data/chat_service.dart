@@ -14,36 +14,36 @@ class ChatService {
   io.Socket? socket;
   final String baseUrl = "http://172.27.4.120:8000/api";
 
-  void connect(int receiverId, int senderId) {
-    socket = io.io('http://172.27.4.120:8001', <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': false,
-    });
+  // void connect(int receiverId, int senderId) {
+  //   socket = io.io('http://172.27.4.120:8001', <String, dynamic>{
+  //     'transports': ['websocket'],
+  //     'autoConnect': false,
+  //   });
 
-    socket?.onConnect((_) {
-      print('Connected');
-      socket?.emit('subscribe',
-          'laravel_database_private-chat-channel.$receiverId.$senderId');
-      socket?.emit('subscribe',
-          'laravel_database_private-chat-channel.$senderId.$receiverId');
-    });
+  //   socket?.onConnect((_) {
+  //     print('Connected');
+  //     socket?.emit('subscribe',
+  //         'laravel_database_private-chat-channel.$receiverId.$senderId');
+  //     socket?.emit('subscribe',
+  //         'laravel_database_private-chat-channel.$senderId.$receiverId');
+  //   });
 
-    socket?.on(
-        'laravel_database_private-chat-channel.$receiverId.$senderId:message.sent',
-        (data) {
-      print('Pesan diterima dari receiver ke sender: $data');
-      _handleIncomingMessage(data);
-    });
+  //   socket?.on(
+  //       'laravel_database_private-chat-channel.$receiverId.$senderId:message.sent',
+  //       (data) {
+  //     print('Pesan diterima dari receiver ke sender: $data');
+  //     _handleIncomingMessage(data);
+  //   });
 
-    socket?.on(
-        'laravel_database_private-chat-channel.$senderId.$receiverId:message.sent',
-        (data) {
-      print('Pesan diterima dari sender ke receiver: $data');
-      _handleIncomingMessage(data);
-    });
+  //   socket?.on(
+  //       'laravel_database_private-chat-channel.$senderId.$receiverId:message.sent',
+  //       (data) {
+  //     print('Pesan diterima dari sender ke receiver: $data');
+  //     _handleIncomingMessage(data);
+  //   });
 
-    socket?.connect();
-  }
+  //   socket?.connect();
+  // }
 
   void _handleIncomingMessage(data) {
     try {

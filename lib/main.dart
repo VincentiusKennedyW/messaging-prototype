@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:using_chat_api/data/auth_service.dart';
+import 'package:using_chat_api/data/socket_service.dart';
 import 'package:using_chat_api/model/message_model.dart';
 import 'package:using_chat_api/model/user_model.dart';
 import 'package:using_chat_api/presentation/bloc/chat_bloc/chat_bloc.dart';
@@ -25,6 +27,11 @@ void main() async {
 
   Hive.registerAdapter(UserDataAdapter());
   await Hive.openBox<UserData>('user_box');
+
+  final user = AuthService().getCachedUser();
+  if (user != null) {
+    SocketService().init(user.id);
+  }
 
   runApp(MainApp());
   di.init();
